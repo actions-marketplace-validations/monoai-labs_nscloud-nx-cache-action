@@ -44,6 +44,7 @@ jobs:
     if: inputs.live && inputs.validation_only
     permissions:
       contents: read
+      id-token: write
     uses: ./.github/workflows/integration.yml
   offline:
     runs-on: ubuntu-latest

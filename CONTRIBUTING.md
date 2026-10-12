@@ -61,8 +61,7 @@ Use dedicated test-owned directories and prefixes for live checks.
 The manual `Namespace cache integration` workflow verifies scoped credentials,
 concurrent immutable publication, unfinished-upload invisibility, packaged bundle
 restoration and two fresh consumers on Namespace. Configure the Namespace runner
-profile and allow its identity to issue and revoke Artifact-only credentials before
-running it. The manual `Failed job
+profile and Cloud GitHub OIDC integration before running it. The manual `Failed job
 Artifact persistence` workflow intentionally fails its writer job after finalization;
 its later reader must pass. Its overall failed conclusion is expected.
 

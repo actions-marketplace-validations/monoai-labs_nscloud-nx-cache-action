@@ -5,6 +5,7 @@ on:
   workflow_call:
 permissions:
   contents: read
+  id-token: write
 env:
   NX_CACHE_FAILURE_MODE: strict
 jobs:
@@ -28,7 +29,9 @@ jobs:
         run: pnpm build
       - uses: namespacelabs/nscloud-setup@df198f982fcecfb8264bea3f1274b56a61b6dfdc
       - name: Verify short-lived Artifact credentials
-        run: pnpm exec tsx scripts/credential-proof.ts
+        run: |
+          nsc auth exchange-github-token
+          NSC_TOKEN_FILE="$HOME/.config/ns/token.json" pnpm exec tsx scripts/credential-proof.ts
       - run: pnpm fixture && pnpm --dir fixtures/integration/workspace install
       - run: pnpm exec tsx scripts/contract-check.ts
       - name: Validate standalone executable restoration
@@ -36,7 +39,7 @@ jobs:
           NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}/bundle
         run: |
           export NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-archives"
-          node dist/token.mjs read-write pnpm exec tsx scripts/bundle-proof.ts
+          NSC_TOKEN_FILE="$HOME/.config/ns/token.json" node dist/token.mjs read-write pnpm exec tsx scripts/bundle-proof.ts
       - name: Concurrent Artifact publication
         env:
           NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}/publication

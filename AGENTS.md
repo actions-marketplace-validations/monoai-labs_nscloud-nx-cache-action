@@ -55,10 +55,12 @@ GitHub's organization app-installation endpoint requires `admin:org` scope.
 Repository access alone cannot establish whether a runner integration is installed;
 validate it with the repository's live workflow instead of inferring absence from a 404.
 
-Namespace runners already provide a workload credential. Keep the integration proof
-on that credential instead of forcing `nsc auth exchange-github-token`, which invokes
-the separate GitHub OIDC exchange path and can report a missing Cloud App.
-
 Nx archive entry order can differ between filesystems. Compare generated corpus
 structure independently of tar entry order and apply the existing compressed-size
 calibration tolerance; exact profile JSON equality is not a portable regeneration check.
+
+Runner credentials can pass Artifact storage checks while failing IAM token issuance
+with `Unauthenticated` (code 16). The credential proof deliberately exchanges GitHub
+OIDC credentials and selects that token file. If exchange reports a missing Namespace
+Cloud App, verify the integration at https://github.com/apps/namespace-cloud; a working
+runner connection alone does not prove that exchange is configured.

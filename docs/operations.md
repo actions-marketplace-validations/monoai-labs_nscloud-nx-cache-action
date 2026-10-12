@@ -43,10 +43,9 @@ must be authorized to issue and revoke tokens. `read-only` grants Artifact resol
 workspace; repository-path grants are unavailable. No compute or IAM grants are
 added to the child token.
 
-Namespace runners already supply a workload credential; the integration workflow
-uses it directly. On other GitHub runners, configure Namespace's GitHub OIDC
-integration and use `namespacelabs/nscloud-setup` with `id-token: write` before the
-token wrapper. For hosted builds, forward the issued token only to the build environment. For example,
+For GitHub OIDC, configure the Namespace Cloud GitHub app and exchange the GitHub
+token with `nsc auth exchange-github-token` before running the token wrapper. For
+hosted builds, forward the issued token only to the build environment. For example,
 Vercel deployments can pass it as a build-only variable; keep it out of runtime and
 persistent project environments. Carry the reviewed bundle and license files in
 the deployed source when the build cannot download the release.

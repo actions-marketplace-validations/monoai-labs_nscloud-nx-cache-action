@@ -49,7 +49,7 @@ function fixture(
       jobId,
       protocol: 'restoration-v1',
       runtime: {
-        node: '24.18.1',
+        node: '24.21.0',
         nx: '23.2.1',
         platform: 'linux',
         arch: 'x64',

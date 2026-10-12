@@ -59,7 +59,7 @@
       "additionalProperties": false,
       "properties": {
         "node": {
-          "const": "24.18.1"
+          "const": "24.21.0"
         },
         "pnpm": {
           "const": "11.22.0"

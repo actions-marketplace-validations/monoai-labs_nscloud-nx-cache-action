@@ -66,7 +66,7 @@ function fixture(): Fixture {
     trace: {
       schemaVersion: 1,
       jobId: 'job-1',
-      runtime: { node: '24.18.1' },
+      runtime: { node: '24.21.0' },
       arms: {
         baseline: { revision: 'base', digest, traced: false, events: [] },
         candidate: { revision: 'head', digest, traced: true, events: [] },

@@ -12,7 +12,7 @@ Nx owns task selection, hashing, archive creation and output restoration.
 
 ## Requirements
 
-- Node.js 24.x. Development and benchmarks pin Node 24.18.1.
+- Node.js 24.x. Development and benchmarks pin Node 24.21.0.
 - Nx with the self-hosted HTTP cache protocol. Integration is tested with Nx 23.2.1;
   compatibility with other versions is unverified.
 - Cacheable Nx targets with declared inputs and outputs.
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 24.18.1
+          node-version: 24.21.0
           package-manager-cache: false
       - run: corepack enable
       - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547

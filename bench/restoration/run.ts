@@ -1065,7 +1065,7 @@ export async function runRestoration(options: ControllerOptions = {}): Promise<C
       options.candidateRevision ?? process.env.GITHUB_SHA,
     );
 
-    if (process.versions.node !== '24.18.1' || result.runtime.nx !== '23.2.1') {
+    if (process.versions.node !== '24.21.0' || result.runtime.nx !== '23.2.1') {
       fail('unpinned-benchmark-runtime');
     }
 

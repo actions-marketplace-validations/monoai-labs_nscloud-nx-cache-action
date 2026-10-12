@@ -38,7 +38,7 @@
       ],
       "properties": {
         "node": {
-          "const": "24.18.1"
+          "const": "24.21.0"
         },
         "nx": {
           "const": "23.2.1"

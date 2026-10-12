@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=./schemas/pre-commit.schema.json
+repos:
+  - repo: local
+    hooks:
+      - id: config-schemas
+        name: Validate configuration schemas
+        entry: >-
+          sh -c 'exec mise exec -- env PATH="$(mise where node)/bin:$PATH" corepack pnpm config:check'
+        language: system
+        pass_filenames: false
+        always_run: true

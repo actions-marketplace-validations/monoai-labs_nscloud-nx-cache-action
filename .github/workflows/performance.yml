@@ -1,0 +1,125 @@
+# yaml-language-server: $schema=../../schemas/github-workflow.schema.json
+name: Cache restore performance
+on:
+  workflow_dispatch:
+    inputs:
+      tracing:
+        description: Trace stages and measure overhead with identical bundle controls
+        type: boolean
+        default: true
+      baseline_revision:
+        description: Full public commit SHA to compare when tracing is disabled
+        type: string
+        default: ''
+  workflow_call:
+    inputs:
+      tracing:
+        description: Trace stages and measure overhead with identical bundle controls
+        type: boolean
+        default: true
+      baseline_revision:
+        description: Full public commit SHA to compare when tracing is disabled
+        type: string
+        default: ''
+permissions:
+  contents: read
+env:
+  BENCH_REFERENCE_REPOSITORY: ${{ vars.BENCH_REFERENCE_REPOSITORY || 'monoai-labs/nscloud-nx-cache-action' }}
+concurrency:
+  group: cache-performance-study
+  cancel-in-progress: false
+jobs:
+  paired:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { block: 1, population: 0, pairs: 20 }
+          - { block: 2, population: 0, pairs: 20 }
+          - { block: 3, population: 0, pairs: 20 }
+          - { block: 4, population: 1024, pairs: 1 }
+          - { block: 5, population: 16384, pairs: 1 }
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-restoration-performance', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+        with:
+          cache: pnpm
+          path: ~/.cache/nx-restoration
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Build candidate
+        run: pnpm build
+      - name: Download selected reference
+        if: ${{ !inputs.tracing }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BENCH_BASELINE_REVISION: ${{ inputs.baseline_revision }}
+        run: pnpm exec tsx bench/restoration/baseline.ts
+      - name: Measure restores and inventory diagnostics
+        env:
+          BENCH_TRACING: ${{ inputs.tracing }}
+          BENCH_BASELINE_REVISION: ${{ inputs.baseline_revision }}
+          BENCH_BLOCK: ${{ matrix.block }}
+          BENCH_POPULATION: ${{ matrix.population }}
+          BENCH_PAIRS: ${{ matrix.pairs }}
+          BENCH_RUNNER_PROFILE: ${{ vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default' }}
+          BENCH_MOUNT_EVIDENCE: results/performance-mount-${{ matrix.block }}.json
+        run: |
+          export BENCH_ARCHIVE_ROOT="$HOME/.cache/nx-restoration"
+          mkdir -p results
+          findmnt --json --output SOURCE,TARGET,FSTYPE -T "$BENCH_ARCHIVE_ROOT" > "$BENCH_MOUNT_EVIDENCE"
+          task_trace=()
+          task_baseline=.output/benchmark-baseline/nscloud-nx-cache-action.mjs
+          task_revision="$BENCH_BASELINE_REVISION"
+          if [ "$BENCH_TRACING" = true ]; then
+            task_trace=(--trace-candidate)
+            task_baseline=.output/release/nscloud-nx-cache-action.mjs
+            task_revision="$GITHUB_SHA"
+          fi
+          pnpm bench:restoration:live --protocol restoration-perf-v1 --pairs "$BENCH_PAIRS" --population "$BENCH_POPULATION" --job-id "perf-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --run-id "perf-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --baseline "$task_baseline" --baseline-revision "$task_revision" --candidate-revision "$GITHUB_SHA" "${task_trace[@]}" --output "results/performance-$BENCH_BLOCK.json"
+      - name: Summarize traced intervals
+        if: inputs.tracing
+        env:
+          BENCH_BLOCK: ${{ matrix.block }}
+        run: pnpm exec tsx bench/restoration/trace-analysis.ts "results/performance-$BENCH_BLOCK.trace.json" "results/performance-$BENCH_BLOCK.json" "results/performance-$BENCH_BLOCK.stages.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: performance-${{ matrix.block }}
+          path: results/
+  analyze:
+    needs: paired
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: performance-*
+          path: results/blocks
+      - name: Analyze ordinary workload with job-block intervals
+        env:
+          BENCH_TRACING: ${{ inputs.tracing }}
+        run: |
+          task_options=()
+          if [ "$BENCH_TRACING" = true ]; then task_options=(--tracing-overhead); fi
+          pnpm exec tsx bench/restoration/analyze.ts "${task_options[@]}" results/blocks/performance-1/performance-1.json results/blocks/performance-2/performance-2.json results/blocks/performance-3/performance-3.json > results/performance-analysis.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: performance-analysis
+          path: results/performance-analysis.json

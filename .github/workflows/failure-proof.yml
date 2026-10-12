@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=../../schemas/github-workflow.schema.json
+name: Failed job Artifact persistence
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  failed-writer:
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-cache-integration', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+        with:
+          cache: pnpm
+          path: ~/.cache/nx-archives
+      - run: pnpm install --frozen-lockfile
+      - name: Finalize an artifact before intentional job failure
+        env:
+          NX_ARTIFACT_PREFIX: nx-cache/failure/${{ github.run_id }}
+        run: |
+          pnpm exec tsx scripts/namespace-roundtrip.ts write
+          exit 1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: failed-writer
+          path: results/
+  reader:
+    needs: failed-writer
+    if: always() && needs.failed-writer.result == 'failure'
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-cache-integration', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Restore finalized artifact in a later fresh job
+        env:
+          NX_ARTIFACT_PREFIX: nx-cache/failure/${{ github.run_id }}
+        run: pnpm exec tsx scripts/namespace-roundtrip.ts verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: failure-reader
+          path: results/

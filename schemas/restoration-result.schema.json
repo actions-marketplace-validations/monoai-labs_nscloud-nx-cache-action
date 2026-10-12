@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/monoai-labs/nscloud-nx-cache-action/schemas/restoration-result.schema.json",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "jobId",
+    "protocol",
+    "runtime",
+    "baseline",
+    "candidate",
+    "corpusDigest",
+    "samples",
+    "failures"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocol": {
+      "enum": [
+        "restoration-v1",
+        "restoration-perf-v1"
+      ]
+    },
+    "jobId": {
+      "$ref": "#/definitions/identifier"
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "node",
+        "nx",
+        "platform",
+        "arch",
+        "runnerProfile",
+        "region"
+      ],
+      "properties": {
+        "node": {
+          "const": "24.18.1"
+        },
+        "nx": {
+          "const": "23.2.1"
+        },
+        "pnpm": {
+          "type": "string"
+        },
+        "sdk": {
+          "type": "string"
+        },
+        "platform": {
+          "$ref": "#/definitions/identifier"
+        },
+        "arch": {
+          "$ref": "#/definitions/identifier"
+        },
+        "runnerProfile": {
+          "$ref": "#/definitions/identifier"
+        },
+        "region": {
+          "$ref": "#/definitions/identifier"
+        },
+        "runnerEvidence": {
+          "type": [
+            "object",
+            "string"
+          ]
+        }
+      }
+    },
+    "baseline": {
+      "$ref": "#/definitions/bundle"
+    },
+    "candidate": {
+      "$ref": "#/definitions/bundle"
+    },
+    "corpusDigest": {
+      "$ref": "#/definitions/digest"
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/sample"
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "weights": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,159}$": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "type": "object"
+    },
+    "order": {
+      "type": "array"
+    },
+    "preparation": {
+      "type": "object"
+    },
+    "calibration": {
+      "type": "object"
+    },
+    "acceptance": {
+      "type": "object"
+    }
+  },
+  "definitions": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,159}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "bundle": {
+      "type": "object",
+      "required": [
+        "revision",
+        "digest"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "digest": {
+          "$ref": "#/definitions/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sample": {
+      "type": "object",
+      "required": [
+        "jobId",
+        "pair",
+        "arm",
+        "profileId",
+        "concurrency",
+        "lane",
+        "population",
+        "durationMs",
+        "bytes",
+        "valid",
+        "proof"
+      ],
+      "properties": {
+        "jobId": {
+          "$ref": "#/definitions/identifier"
+        },
+        "pair": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "arm": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "profileId": {
+          "$ref": "#/definitions/identifier"
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lane": {
+          "enum": [
+            "adapter-remote",
+            "adapter-local",
+            "nx-remote",
+            "nx-local",
+            "mixed-invocation"
+          ]
+        },
+        "population": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durationMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "serverDurationMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "excluded": {
+          "enum": [
+            "first-access",
+            "warmup"
+          ]
+        },
+        "proof": {
+          "type": "object",
+          "required": [
+            "tier",
+            "digest",
+            "noPublication",
+            "completeBody"
+          ],
+          "properties": {
+            "tier": {
+              "enum": [
+                "artifact",
+                "local",
+                "mixed"
+              ]
+            },
+            "digest": {
+              "$ref": "#/definitions/digest"
+            },
+            "noPublication": {
+              "type": "boolean"
+            },
+            "completeBody": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

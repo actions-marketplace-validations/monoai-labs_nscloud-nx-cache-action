@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=./actionlint.schema.json
+self-hosted-runner:
+  labels:
+    - namespace-profile-linux-default
+    - namespace-profile-linux-default;overrides.cache-tag=nx-cache-integration
+    - namespace-profile-linux-default;overrides.cache-tag=nx-restoration-benchmark
+    - namespace-profile-linux-default;overrides.cache-tag=nx-restoration-performance

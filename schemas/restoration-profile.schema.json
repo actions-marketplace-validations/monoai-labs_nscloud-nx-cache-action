@@ -1,0 +1,371 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/monoai-labs/nscloud-nx-cache-action/schemas/restoration-profile.schema.json",
+  "title": "Synthetic restoration workload corpus",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "provenance",
+    "runtime",
+    "margins",
+    "tolerances",
+    "representativeIds",
+    "seeds",
+    "profiles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "kind",
+        "generator",
+        "productionRepresentative",
+        "weightBasis",
+        "limitations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "synthetic"
+        },
+        "generator": {
+          "const": "bench/restoration/synthetic-profile.ts"
+        },
+        "productionRepresentative": {
+          "const": false
+        },
+        "weightBasis": {
+          "type": "string"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "node",
+        "pnpm",
+        "nx"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "const": "24.18.1"
+        },
+        "pnpm": {
+          "const": "11.22.0"
+        },
+        "nx": {
+          "const": "23.2.1"
+        }
+      }
+    },
+    "margins": {
+      "type": "object",
+      "required": [
+        "median",
+        "p95"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "median": {
+          "type": "object",
+          "required": [
+            "relative",
+            "absoluteMs"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "relative": {
+              "const": 0.1
+            },
+            "absoluteMs": {
+              "const": 10
+            }
+          }
+        },
+        "p95": {
+          "type": "object",
+          "required": [
+            "relative",
+            "absoluteMs"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "relative": {
+              "const": 0.15
+            },
+            "absoluteMs": {
+              "const": 25
+            }
+          }
+        }
+      }
+    },
+    "tolerances": {
+      "type": "object",
+      "required": [
+        "structure",
+        "expandedBytes",
+        "compressedBytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "structure": {
+          "const": 0
+        },
+        "expandedBytes": {
+          "const": 0.05
+        },
+        "compressedBytes": {
+          "const": 0.1
+        }
+      }
+    },
+    "representativeIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^synthetic-[a-z0-9-]+$"
+      }
+    },
+    "seeds": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "compressedBytes",
+          "attempts",
+          "expandedTarBytes",
+          "outputBytes",
+          "metadataBytes",
+          "fileCount",
+          "directoryCount",
+          "maxDepth",
+          "id",
+          "fileBytes",
+          "fileSizeBytes",
+          "depthCounts",
+          "modeCounts",
+          "directoryChildCounts",
+          "types",
+          "extensions",
+          "compressionRatio",
+          "filesPerMiB",
+          "layout"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "compressedBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expandedTarBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "metadataBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "fileCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "directoryCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^synthetic-[a-z0-9-]+$"
+          },
+          "fileBytes": {
+            "type": "object",
+            "required": [
+              "0",
+              "0.1",
+              "0.5",
+              "0.9",
+              "0.95",
+              "0.99",
+              "1"
+            ],
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "fileSizeBytes": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "depthCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "modeCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "directoryChildCounts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "types": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "extensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "count",
+                "bytes"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "compressionRatio": {
+            "type": "number",
+            "minimum": 0
+          },
+          "filesPerMiB": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layout": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "parent",
+                "depth",
+                "type",
+                "mode",
+                "size",
+                "extension"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "parent": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "depth": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "type": {
+                  "enum": [
+                    "0",
+                    "1",
+                    "2",
+                    "5",
+                    "7"
+                  ]
+                },
+                "mode": {
+                  "type": "string",
+                  "pattern": "^[0-7]+$"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "extension": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

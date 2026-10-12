@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=../../schemas/github-workflow.schema.json
+name: Namespace cache integration
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+  id-token: write
+env:
+  NX_CACHE_FAILURE_MODE: strict
+jobs:
+  producer:
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-cache-integration', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+        with:
+          cache: pnpm
+          path: ~/.cache/nx-archives
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Build standalone executables
+        run: pnpm build
+      - uses: namespacelabs/nscloud-setup@df198f982fcecfb8264bea3f1274b56a61b6dfdc
+      - name: Verify short-lived Artifact credentials
+        run: |
+          nsc auth exchange-github-token
+          NSC_TOKEN_FILE="$HOME/.config/ns/token.json" pnpm exec tsx scripts/credential-proof.ts
+      - run: pnpm fixture && pnpm --dir fixtures/integration/workspace install
+      - run: pnpm exec tsx scripts/contract-check.ts
+      - name: Validate standalone executable restoration
+        env:
+          NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}/bundle
+        run: |
+          export NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-archives"
+          NSC_TOKEN_FILE="$HOME/.config/ns/token.json" node dist/token.mjs read-write pnpm exec tsx scripts/bundle-proof.ts
+      - name: Concurrent Artifact publication
+        env:
+          NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}/publication
+        run: pnpm exec tsx scripts/namespace-roundtrip.ts
+      - name: Prove local and shared restoration
+        env:
+          INTEGRATION_EXPECT_COLD: 'true'
+          NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}
+          NX_ARTIFACT_REGION: ord
+        run: |
+          export NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-archives/${{ github.run_id }}"
+          findmnt -T "$HOME/.cache/nx-archives"
+          pnpm integration:restoration
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: producer
+          path: results/
+  consumer:
+    needs: producer
+    strategy:
+      matrix:
+        replica: [a, b]
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-cache-integration', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+        with:
+          cache: pnpm
+          path: ~/.cache/nx-archives
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fixture && pnpm --dir fixtures/integration/workspace install
+      - name: Prove cross-job restoration
+        env:
+          INTEGRATION_EXPECT_REUSE: 'true'
+          NX_ARTIFACT_PREFIX: nx-cache/integration/${{ github.run_id }}
+          NX_ARTIFACT_REGION: ord
+        run: |
+          export NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-archives/${{ github.run_id }}"
+          findmnt -T "$HOME/.cache/nx-archives"
+          pnpm integration:restoration
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: consumer-${{ matrix.replica }}
+          path: results/

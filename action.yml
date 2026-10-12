@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./schemas/github-action.schema.json
+name: Nx Cache Adaptor for Namespaces
+description: Configure the Nx loopback archive connector for an existing Namespace cache volume.
+inputs:
+  archive-directory:
+    description: Archive directory already mounted by nscloud-cache-action.
+    default: ~/.cache/nx-namespace
+  artifact-prefix:
+    description: Repository and protocol prefix in Namespace Artifact Storage.
+    required: true
+  artifact-region:
+    description: Namespace storage region.
+    default: ord
+  access:
+    description: read-only or read-write; provider permissions must enforce the same policy.
+    default: read-only
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        INPUT_ARCHIVE_DIRECTORY: ${{ inputs.archive-directory }}
+        INPUT_ARTIFACT_PREFIX: ${{ inputs.artifact-prefix }}
+        INPUT_ARTIFACT_REGION: ${{ inputs.artifact-region }}
+        INPUT_ACCESS: ${{ inputs.access }}
+      run: node "$GITHUB_ACTION_PATH/dist/setup.mjs"

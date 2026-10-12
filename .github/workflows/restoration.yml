@@ -1,0 +1,148 @@
+# yaml-language-server: $schema=../../schemas/github-workflow.schema.json
+name: Cache restoration
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Run Namespace jobs as well as offline checks
+        type: boolean
+        default: true
+      baseline_revision:
+        description: Full public commit SHA to compare when validation_only is disabled
+        type: string
+        default: ''
+      validation_only:
+        description: Validate two isolated candidate copies without a performance comparison
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      live:
+        description: Run Namespace jobs as well as offline checks
+        type: boolean
+        default: true
+      baseline_revision:
+        description: Full public commit SHA to compare when validation_only is disabled
+        type: string
+        default: ''
+      validation_only:
+        description: Validate two isolated candidate copies without a performance comparison
+        type: boolean
+        default: true
+permissions:
+  contents: read
+env:
+  BENCH_REFERENCE_REPOSITORY: ${{ vars.BENCH_REFERENCE_REPOSITORY || 'monoai-labs/nscloud-nx-cache-action' }}
+concurrency:
+  group: restoration-${{ github.event_name == 'pull_request' && github.ref || 'live-suite' }}
+  cancel-in-progress: false
+jobs:
+  integration:
+    if: inputs.live && inputs.validation_only
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/integration.yml
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm bench:restoration:offline
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: restoration-offline
+          path: results/restoration-offline.json
+  paired:
+    if: inputs.live
+    strategy:
+      fail-fast: false
+      matrix:
+        block: [1, 2, 3]
+    runs-on: ${{ format('{0};overrides.cache-tag=nx-restoration-benchmark', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+        with:
+          cache: pnpm
+          path: ~/.cache/nx-restoration
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Build candidate
+        run: pnpm build
+      - name: Verify immutable baseline
+        if: ${{ !inputs.validation_only }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BENCH_BASELINE_REVISION: ${{ inputs.baseline_revision }}
+        run: pnpm exec tsx bench/restoration/baseline.ts
+      - name: Paired client-empty Artifact and local restores
+        if: ${{ !inputs.validation_only }}
+        env:
+          BENCH_RUNNER_PROFILE: ${{ vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default' }}
+          BENCH_BLOCK: ${{ matrix.block }}
+          BENCH_MOUNT_EVIDENCE: results/restoration-mount-${{ matrix.block }}.json
+          BENCH_REVISION: ${{ github.sha }}
+          BENCH_BASELINE_REVISION: ${{ inputs.baseline_revision }}
+        run: |
+          export BENCH_ARCHIVE_ROOT="$HOME/.cache/nx-restoration"
+          mkdir -p results
+          findmnt --json --output SOURCE,TARGET,FSTYPE -T "$BENCH_ARCHIVE_ROOT" > "$BENCH_MOUNT_EVIDENCE"
+          pnpm bench:restoration:live --pairs 20 --job-id "job-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --run-id "run-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --baseline-revision "$BENCH_BASELINE_REVISION" --candidate-revision "$BENCH_REVISION" --output "results/restoration-$BENCH_BLOCK.json"
+      - name: Candidate-only restoration correctness
+        if: inputs.validation_only
+        env:
+          BENCH_RUNNER_PROFILE: ${{ vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default' }}
+          BENCH_BLOCK: ${{ matrix.block }}
+          BENCH_MOUNT_EVIDENCE: results/restoration-mount-${{ matrix.block }}.json
+          BENCH_REVISION: ${{ github.sha }}
+        run: |
+          export BENCH_ARCHIVE_ROOT="$HOME/.cache/nx-restoration"
+          mkdir -p results
+          findmnt --json --output SOURCE,TARGET,FSTYPE -T "$BENCH_ARCHIVE_ROOT" > "$BENCH_MOUNT_EVIDENCE"
+          pnpm bench:restoration:live --pairs 20 --job-id "validation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --run-id "validation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --baseline .output/release/nscloud-nx-cache-action.mjs --candidate .output/release/nscloud-nx-cache-action.mjs --baseline-revision "$BENCH_REVISION" --candidate-revision "$BENCH_REVISION" --output "results/restoration-$BENCH_BLOCK.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: restoration-paired-${{ matrix.block }}
+          path: results/
+  analyze:
+    if: always() && inputs.live && !inputs.validation_only
+    needs: paired
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: restoration-paired-*
+          path: results/blocks
+      - run: pnpm exec tsx bench/restoration/analyze.ts results/blocks/*/restoration-[123].json > results/restoration-analysis.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: restoration-analysis
+          path: results/restoration-analysis.json

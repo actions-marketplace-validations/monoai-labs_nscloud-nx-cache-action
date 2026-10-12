@@ -1,0 +1,6 @@
+{
+  "$schema": "./schemas/oxfmt.schema.json",
+  "singleQuote": true,
+  "sortPackageJson": false,
+  "ignorePatterns": ["dist/**", "fixtures/**", "schemas/**", "results/**", ".output/**"]
+}

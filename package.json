@@ -1,0 +1,45 @@
+{
+  "name": "@monoai/nscloud-nx-cache-action",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Nx HTTP cache adapter for local archives and Namespace Artifact Storage",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "check": "pnpm run config:check && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm test",
+    "config:check": "tsx scripts/validate-config.ts",
+    "format": "oxfmt --write src scripts tests bench package.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "format:check": "oxfmt --check src scripts tests bench package.json tsconfig.json .oxlintrc.json .oxfmtrc.json",
+    "lint": "oxlint --deny-warnings src scripts tests bench",
+    "lint:fix": "pnpm run lint --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "fixture": "tsx scripts/generate-fixture.ts",
+    "integration:restoration": "tsx scripts/integration-restoration.ts",
+    "integration:contracts": "tsx scripts/contract-check.ts",
+    "build": "tsx scripts/build.ts",
+    "bench:restoration:offline": "tsx bench/restoration/offline.ts",
+    "bench:restoration:live": "tsx bench/restoration/run.ts",
+    "bench:restoration:analyze": "tsx bench/restoration/analyze.ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.14.1",
+    "@connectrpc/connect": "2.2.0",
+    "@namespacelabs/sdk": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "nx": "23.2.1",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "yaml": "2.9.0"
+  }
+}

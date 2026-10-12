@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+node_dir=$(dirname "$(mise which node)")
+export PATH="$node_dir:$PATH"
+pnpm run config:check

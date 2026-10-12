@@ -1,0 +1,7 @@
+node_modules/
+.output/
+.nx/
+.env*
+results/
+fixtures/integration/workspace/
+docs/plans/

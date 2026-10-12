@@ -1,0 +1,21 @@
+nscloud-nx-cache-action is licensed under MIT. The standalone executables also
+contain third-party code under its original licenses:
+
+@namespacelabs/sdk 1.0.0 — Apache-2.0
+https://github.com/namespacelabs/typescript-sdk
+
+@connectrpc/connect 2.2.0 and @connectrpc/connect-node 2.2.0 — Apache-2.0
+Copyright 2021-2026 The Connect Authors
+https://github.com/connectrpc/connect-es/tree/v2.2.0
+
+@bufbuild/protobuf 2.14.1 — Apache-2.0 and BSD-3-Clause
+Copyright 2021-2026 Buf Technologies, Inc.
+The varint implementation includes code copyright 2008 Google Inc.
+https://github.com/bufbuild/protobuf-es/tree/v2.14.1
+
+The complete third-party license texts are in THIRD_PARTY_LICENSES.txt.
+Redistribute LICENSE, NOTICE and THIRD_PARTY_LICENSES.txt with the executables.
+
+Development tools (not bundled into the standalone executables):
+Oxlint 1.86.0 and Oxfmt 0.71.0 — MIT
+https://github.com/oxc-project/oxc

@@ -1,3 +1,5 @@
 [tools]
 node = "24.21.0"
-actionlint = "1.7.12"
+# Astral does not publish releases; build the reviewed commit with pinned Go.
+go = "1.25.12"
+"go:github.com/astral-sh/actionlint/cmd/actionlint" = "0141e7822652fbee3a1b878c3d83d9c1dce87d67"

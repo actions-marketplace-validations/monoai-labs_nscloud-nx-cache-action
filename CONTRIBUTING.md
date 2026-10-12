@@ -37,7 +37,9 @@ why they exist, and how they are invoked.
 Configuration schemas are vendored in `schemas/` and checked by `pnpm config:check`;
 run `mise exec -- pre-commit install` to enable the local schema validation hook. Refresh the Oxlint and Oxfmt schemas from their packages when updating those tools.
 
-Run `mise exec -- actionlint` for workflow changes. Build with `pnpm build`; include
+Run `mise exec -- actionlint` for workflow changes. Local checks and CI use the
+Astral fork at the commit pinned in `mise.toml`, built with the pinned Go version.
+Build with `pnpm build`; include
 generated `dist/` changes when source changes alter a bundle. Keep commits focused
 and explain changed behavior and validation in pull requests.
 

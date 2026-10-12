@@ -49,9 +49,11 @@ output, and zero-byte files with empty directories. Stress shapes have zero work
 weight and are included only with `--all`; report their results separately.
 
 Nx's native serializer produces each archive. Generation checks topology, modes,
-file sizes and expanded bytes, with a 10% compressed-size tolerance. Tests reproduce
-the complete profile JSON from the recipes before qualifying every generated archive.
-The analyzer rejects comparisons using different corpus digests.
+file sizes and expanded bytes, with a 10% compressed-size tolerance. Tests regenerate
+every recipe and verify its weight, layout and calibration before qualifying each archive.
+Tar entry order can differ across filesystems, so layouts use canonical path order
+and compressed sizes retain the calibration tolerance. The analyzer rejects comparisons
+using different corpus digests.
 
 These fixtures cover controlled workload characteristics, not a production arrival
 sequence or a claim of exhaustive application coverage. Assess component documentation

@@ -22,10 +22,18 @@ const TAR_CHECKSUM_DIGITS = 6;
 
 test('synthetic workload and stress recipes reproduce the corpus and qualify every archive', async () => {
   const corpus = await generator.readCorpus();
-  assert.deepEqual(
-    await syntheticCorpus(),
-    JSON.parse(await readFile('fixtures/restoration/profile.json', 'utf8')),
-  );
+  const { profiles: regenerated, ...metadata } = await syntheticCorpus();
+  const { profiles: saved, ...savedMetadata } = corpus;
+  assert.deepEqual(metadata, savedMetadata);
+  assert.equal(regenerated.length, saved.length);
+
+  for (const actual of regenerated) {
+    const expected = saved.find((profile) => profile.id === actual.id);
+    assert.ok(expected);
+    assert.equal(actual.attempts, expected.attempts);
+    assert.deepEqual(actual.layout, expected.layout);
+    generator.assertCalibration(expected, actual, { exactLayout: true });
+  }
 
   assert.equal(corpus.profiles.length, 16);
   assert.equal(
@@ -163,6 +171,19 @@ test('normal tar counts modes, zeros, empty directories and density while exclud
 
   assert.equal(profile.filesPerMiB, 524288);
   assert.doesNotMatch(JSON.stringify(profile), /private-console|index|pkg|terminalOutput/);
+});
+
+test('anonymous layout is stable when tar entries arrive in a different order', () => {
+  const directory = tarEntry('pkg/', '', { type: TarEntryType.Directory });
+  const first = tarEntry('pkg/first.js', 'one');
+  const second = tarEntry('pkg/second.d.ts', 'two');
+  const profile = (entries: Buffer[]) =>
+    profiler.profileArchive(archive(entries), { includeLayout: true });
+
+  assert.deepEqual(
+    profile([directory, first, second]).layout,
+    profile([second, directory, first]).layout,
+  );
 });
 
 test('PAX path and size override and GNU long names retain anonymous shape', () => {

@@ -54,3 +54,7 @@ An installed mise shim without a selected version cannot run the scanner.
 GitHub's organization app-installation endpoint requires `admin:org` scope.
 Repository access alone cannot establish whether a runner integration is installed;
 validate it with the repository's live workflow instead of inferring absence from a 404.
+
+Nx archive entry order can differ between filesystems. Compare generated corpus
+structure independently of tar entry order and apply the existing compressed-size
+calibration tolerance; exact profile JSON equality is not a portable regeneration check.

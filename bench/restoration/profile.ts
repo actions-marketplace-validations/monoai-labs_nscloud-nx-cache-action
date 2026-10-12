@@ -247,7 +247,10 @@ export function profileArchive(
 
   const children: Map<string, number> = new Map();
   const paths: Map<string, number> = new Map();
-  const layout: (Omit<ArchiveLayoutEntry, 'parent'> & { parentPath: string })[] = [];
+  const layout: (Omit<ArchiveLayoutEntry, 'parent' | 'id'> & {
+    name: string;
+    parentPath: string;
+  })[] = [];
   let offset = 0;
   let headers = 0;
   let ended = false;
@@ -390,7 +393,7 @@ export function profileArchive(
     }
 
     layout.push({
-      id: entryId,
+      name,
       parentPath: parent,
       depth,
       type,
@@ -414,9 +417,12 @@ export function profileArchive(
     ? (result.fileCount * MEBIBYTE) / result.outputBytes
     : null;
   if (includeLayout) {
-    result.layout = layout.map(({ parentPath, ...entry }) => ({
+    layout.sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+    const sortedPaths = new Map(layout.map((entry, id) => [entry.name, id]));
+    result.layout = layout.map(({ parentPath, name: _name, ...entry }, id) => ({
       ...entry,
-      parent: paths.get(parentPath) ?? null,
+      id,
+      parent: sortedPaths.get(parentPath) ?? null,
     }));
   }
 

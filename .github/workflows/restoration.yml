@@ -46,11 +46,11 @@ jobs:
     env:
       MISE_EXEC_AUTO_INSTALL: 'false'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install pinned tools
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
         with:
           version: 2026.9.2
           install_args: node go go:github.com/astral-sh/actionlint/cmd/actionlint
@@ -67,8 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.21.0
           package-manager-cache: false
@@ -76,7 +76,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm bench:restoration:offline
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: restoration-offline
@@ -90,13 +90,13 @@ jobs:
     runs-on: ${{ format('{0};overrides.cache-tag=nx-restoration-benchmark', vars.NAMESPACE_RUNNER_PROFILE || 'namespace-profile-linux-default') }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.21.0
           package-manager-cache: false
       - run: corepack enable
-      - uses: namespacelabs/nscloud-cache-action@c5f8dab7560444c4bf8dbc64f1b203431873c547
+      - uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           cache: pnpm
           path: ~/.cache/nx-restoration
@@ -135,7 +135,7 @@ jobs:
           mkdir -p results
           findmnt --json --output SOURCE,TARGET,FSTYPE -T "$BENCH_ARCHIVE_ROOT" > "$BENCH_MOUNT_EVIDENCE"
           pnpm bench:restoration:live --pairs 20 --job-id "validation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --run-id "validation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$BENCH_BLOCK" --baseline .output/release/nscloud-nx-cache-action.mjs --candidate .output/release/nscloud-nx-cache-action.mjs --baseline-revision "$BENCH_REVISION" --candidate-revision "$BENCH_REVISION" --output "results/restoration-$BENCH_BLOCK.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: restoration-paired-${{ matrix.block }}
@@ -146,19 +146,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.21.0
           package-manager-cache: false
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: restoration-paired-*
           path: results/blocks
       - run: pnpm exec tsx bench/restoration/analyze.ts results/blocks/*/restoration-[123].json > results/restoration-analysis.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: restoration-analysis

@@ -50,6 +50,10 @@ Vercel deployments can pass it as a build-only variable; keep it out of runtime 
 persistent project environments. Carry the reviewed bundle and license files in
 the deployed source when the build cannot download the release.
 
+See the [Vercel integration guide](vercel.md) for a complete source-deployment
+recipe, including the hosted build command, build-only token forwarding and
+waiting for the build before revocation.
+
 Cache permissions must be enforced by the provider. An HTTP read-only setting
 cannot remove write permission from a runner identity or mounted volume.
 

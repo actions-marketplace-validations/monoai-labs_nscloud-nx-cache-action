@@ -68,3 +68,12 @@ runner connection alone does not prove that exchange is configured.
 If typechecking reports missing installed SDK modules, verify the checkout's
 `node_modules` links and run the documented frozen-lockfile install before changing
 source types. An incomplete dependency installation does not establish a source error.
+
+Vercel's published configuration schema declares draft-04 but can contain newer
+numeric `exclusiveMinimum` rules. If its metaschema validation fails, report that
+limitation; do not disable schema validation or relabel the downloaded schema.
+The pinned CLI's local configuration reader checks only part of the configuration;
+its acceptance does not replace schema validation or a hosted deployment test.
+Use `CDPATH='' cd ...` in POSIX shell examples; ShellCheck flags `CDPATH= cd ...`.
+Resolve temporary fixture paths with `realpath` when checking shell working
+directories on macOS; `/var` and `/private/var` can name the same directory.

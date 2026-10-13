@@ -86,10 +86,15 @@ On macOS, use `shasum -a 256 --check SHA256SUMS`. Omitting `NX_ARTIFACT_PREFIX`
 selects local-only caching. See [operations](docs/operations.md) for remote
 credentials, hosted builds and troubleshooting.
 
+For source deployments that build on Vercel, follow the [Vercel guide](docs/vercel.md).
+It covers shipping the release files, wiring the hosted Nx build, and forwarding
+a short-lived build credential from GitHub.
+
 ## Documentation
 
 - [Configuration](docs/configuration.md): action inputs, environment variables and defaults.
 - [Operations](docs/operations.md): storage, credentials, failures and releases.
+- [Vercel](docs/vercel.md): source deployments, hosted builds and build-only credentials.
 - [Benchmarking](docs/benchmarking.md): restoration profiles, regression paths and tracing.
 - [Contributing](CONTRIBUTING.md): setup, checks and integration tests.
 

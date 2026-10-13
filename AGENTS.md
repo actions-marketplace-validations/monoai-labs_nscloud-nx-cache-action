@@ -77,3 +77,7 @@ its acceptance does not replace schema validation or a hosted deployment test.
 Use `CDPATH='' cd ...` in POSIX shell examples; ShellCheck flags `CDPATH= cd ...`.
 Resolve temporary fixture paths with `realpath` when checking shell working
 directories on macOS; `/var` and `/private/var` can name the same directory.
+
+GitHub CLI does not combine `gh api --slurp` with `--jq` or `--template`.
+Save paginated JSON to a temporary file and run `jq` on that file after the API
+command succeeds.

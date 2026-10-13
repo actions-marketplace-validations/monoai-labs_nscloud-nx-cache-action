@@ -64,3 +64,7 @@ with `Unauthenticated` (code 16). The credential proof deliberately exchanges Gi
 OIDC credentials and selects that token file. If exchange reports a missing Namespace
 Cloud App, verify the integration at https://github.com/apps/namespace-cloud; a working
 runner connection alone does not prove that exchange is configured.
+
+If typechecking reports missing installed SDK modules, verify the checkout's
+`node_modules` links and run the documented frozen-lockfile install before changing
+source types. An incomplete dependency installation does not establish a source error.

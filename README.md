@@ -29,6 +29,13 @@ entries. For security, we recommend you pin the adapter to a reviewed full commi
 SHA. This example runs on main; configure provider permissions and volume commit
 policy for the same trusted branch.
 
+The example uses pnpm; set your repository's `packageManager` field to a pinned
+pnpm version and commit its lockfile. Install Node before invoking the action.
+If the action repository is private, its **Settings → Actions → General → Access**
+must allow repositories in the organization to use it. The consuming repository
+must also be connected to Namespace runners. Public actions need no private
+repository sharing setting.
+
 ```yaml
 name: Build
 on:
@@ -54,7 +61,7 @@ jobs:
       - uses: monoai-labs/nscloud-nx-cache-action@v0.1.0
         with:
           archive-directory: ~/.cache/nx-namespace
-          artifact-prefix: nx/v1/owner/repository
+          artifact-prefix: nx/v1/${{ github.repository }}
           access: read-write
       - run: nscloud-nx-cache-action pnpm exec nx run-many -t build
 ```

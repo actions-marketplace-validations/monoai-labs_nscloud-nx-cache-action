@@ -58,7 +58,7 @@ jobs:
           cache: pnpm
           path: ~/.cache/nx-namespace
       - run: pnpm install --frozen-lockfile
-      - uses: monoai-labs/nscloud-nx-cache-action@v0.1.0
+      - uses: monoai-labs/nscloud-nx-cache-action@cfcf779b9df2026fedf96056989dd69c7f59316f # v0.1.0
         with:
           archive-directory: ~/.cache/nx-namespace
           artifact-prefix: nx/v1/${{ github.repository }}

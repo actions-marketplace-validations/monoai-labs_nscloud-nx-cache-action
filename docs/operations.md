@@ -98,3 +98,34 @@ and prepares a draft release with executables, checksums and license notices.
 Publish the draft after verifying its assets and qualifying the commit on Namespace.
 Existing tags must remain immutable. Consumers pin a reviewed commit or verify a
 pinned release's checksums.
+
+### First public publication
+
+Keep the source import's fresh history. Do not push refs from a private predecessor
+or copy measured workload profiles, archives or results into this repository.
+Review every exposed branch and tag, release asset, issue and workflow artifact
+before changing visibility; scan the Git history and distributed files for secrets.
+
+Prepare a new patch release from the qualified main commit when metadata or docs
+change. Verify the draft's checksums, license files and executable bytes against
+the reviewed build. Record the Namespace and separate-repository consumer checks;
+offline checks do not establish runner storage behavior. Keep existing releases
+and tags unchanged.
+
+After approval to publish, make this repository public and publish the reviewed
+draft. Public workflows can then use `monoai-labs/nscloud-nx-cache-action@<tag>`
+without private-repository sharing. Prefer a full commit SHA in usage examples.
+Check access from an unauthenticated session and a separate consumer repository.
+
+GitHub Marketplace is a separate listing step. Use the release page's **Publish
+this Action to the GitHub Marketplace** option, with **Continuous integration**
+as the primary category. The root `action.yml` supplies the name, description and
+branding. GitHub validates name availability there; do not claim a listing until
+that check passes. An organization owner must accept the Marketplace Developer
+Agreement, and publishing requires two-factor authentication. Follow
+[GitHub's publication instructions](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/publish-in-github-marketplace).
+
+The repository description should describe local archives and Namespace Artifact
+Storage; avoid latency or performance claims without published measurements.
+The package stays private because distribution uses GitHub and release assets,
+rather than npm.

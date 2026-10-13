@@ -1,6 +1,9 @@
 # yaml-language-server: $schema=./schemas/github-action.schema.json
 name: Nx Cache Adaptor for Namespaces
-description: Configure the Nx loopback archive connector for an existing Namespace cache volume.
+description: Configure an Nx HTTP cache backed by local archives and Namespace Artifact Storage.
+branding:
+  icon: database
+  color: blue
 inputs:
   archive-directory:
     description: Archive directory already mounted by nscloud-cache-action.

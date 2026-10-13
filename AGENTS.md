@@ -81,3 +81,6 @@ directories on macOS; `/var` and `/private/var` can name the same directory.
 GitHub CLI does not combine `gh api --slurp` with `--jq` or `--template`.
 Save paginated JSON to a temporary file and run `jq` on that file after the API
 command succeeds.
+ShellCheck interprets JavaScript template interpolation inside a single-quoted
+`node -e` argument as shell interpolation. Use string concatenation in inline
+version checks rather than suppressing the diagnostic.

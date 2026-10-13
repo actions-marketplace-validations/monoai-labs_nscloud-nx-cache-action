@@ -93,11 +93,24 @@ logs. Optional tracing is described in [benchmarking](benchmarking.md).
 
 Build and check with the pinned toolchain described in [Contributing](../CONTRIBUTING.md).
 Commit reproducibly generated `dist/` files and qualify the commit on Namespace.
-The manual release workflow runs only from main, checks the committed distribution
-and prepares a draft release with executables, checksums and license notices.
+Run the release workflow manually from main with a new `vMAJOR.MINOR.PATCH` tag
+matching `package.json`. It checks the committed distribution and prepares a draft
+release with executables, checksums and license notices.
 Publish the draft after verifying its assets and qualifying the commit on Namespace.
 Existing tags must remain immutable. Consumers pin a reviewed commit or verify a
 pinned release's checksums.
+
+Publishing a release also triggers this workflow. It checks out the tagged commit,
+requires that commit to be in main's history, verifies the version and committed
+bundles, and uploads any missing release files. Existing files must match the
+reviewed build byte for byte; retries do not replace them. Wait for the workflow
+to finish before using standalone downloads when creating a release without
+prepared assets. The GitHub Action itself uses the committed `dist/` files.
+
+Draft creation does not trigger GitHub Actions. Prefer the manual draft flow when
+all downloads must be present at publication, including when GitHub release
+immutability is enabled. The automatic workflow packages assets; it does not
+change repository visibility, move version tags or create a Marketplace listing.
 
 ### First public publication
 

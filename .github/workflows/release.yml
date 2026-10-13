@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=../../schemas/github-workflow.schema.json
 name: Release connector
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -9,20 +11,33 @@ on:
         type: string
 permissions:
   contents: read
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     timeout-minutes: 10
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      RELEASE_ASSET_DIRECTORY: .output/release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.21.0
           package-manager-cache: false
       - run: corepack enable
+      - name: Verify release version and main ancestry
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          node -e 'if (process.env.RELEASE_TAG !== "v" + require("./package.json").version) throw new Error("Release tag must match package version")'
+          git merge-base --is-ancestor HEAD origin/main
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm bench:restoration:offline
@@ -31,9 +46,39 @@ jobs:
       - name: Verify committed distribution
         run: git diff --exit-code -- dist
       - name: Prepare draft release from main
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          gh release create "$RELEASE_TAG" .output/release/nscloud-nx-cache-action.mjs .output/release/token.mjs .output/release/SHA256SUMS .output/release/LICENSE .output/release/NOTICE .output/release/THIRD_PARTY_LICENSES.txt --draft --target "$GITHUB_SHA" --title "$RELEASE_TAG" --notes 'Nx loopback cache connector with local archives and Namespace Artifact Storage.'
+          release_assets=("$RELEASE_ASSET_DIRECTORY"/*)
+          gh release create "$RELEASE_TAG" "${release_assets[@]}" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" --title "$RELEASE_TAG" --notes 'Nx HTTP cache connector with local archives and Namespace Artifact Storage.'
+      - name: Attach verified assets to published release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_assets=("$RELEASE_ASSET_DIRECTORY"/*)
+          existing_asset_directory=$(mktemp -d)
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets > "$existing_asset_directory/assets.json"
+          jq -e '.assets | type == "array" and all(.[]; .name | type == "string")' "$existing_asset_directory/assets.json" > /dev/null
+
+          missing_assets=()
+          for release_asset in "${release_assets[@]}"; do
+            asset_name=${release_asset##*/}
+            if jq -e --arg name "$asset_name" '.assets | any(.name == $name)' "$existing_asset_directory/assets.json" > /dev/null; then
+              gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$asset_name" --dir "$existing_asset_directory"
+              cmp "$release_asset" "$existing_asset_directory/$asset_name"
+            else
+              missing_assets+=("$release_asset")
+            fi
+          done
+
+          if (( ${#missing_assets[@]} )); then
+            gh release upload "$RELEASE_TAG" "${missing_assets[@]}" --repo "$GITHUB_REPOSITORY"
+          fi
+
+          verified_asset_directory=$(mktemp -d)
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$verified_asset_directory"
+          for release_asset in "${release_assets[@]}"; do
+            cmp "$release_asset" "$verified_asset_directory/${release_asset##*/}"
+          done

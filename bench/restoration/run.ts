@@ -78,6 +78,7 @@ import { CacheOperation, CacheTier } from '../../src/metrics.js';
 import { HttpStatus } from '../../src/http.js';
 import { CacheFailureMode, CacheAccess } from '../../src/config.js';
 import { FilePermissions } from '../../src/filesystem.js';
+import projectPackage from '../../package.json' with { type: 'json' };
 
 const INVENTORY_PAYLOAD_FILL_PERIOD = 251;
 
@@ -1003,9 +1004,7 @@ export async function runRestoration(options: ControllerOptions = {}): Promise<C
   const owned = await mkdtemp(join(rootParent, 'restore-'));
   const workers: Map<Arm, BundleWorker> = new Map();
 
-  const packageManager = packageField(require('../../package.json'), 'packageManager')
-    .split('@')
-    .at(-1);
+  const packageManager = projectPackage.packageManager.split('@').at(-1);
   if (!packageManager) {
     fail('invalid-package-metadata');
   }
@@ -1065,7 +1064,10 @@ export async function runRestoration(options: ControllerOptions = {}): Promise<C
       options.candidateRevision ?? process.env.GITHUB_SHA,
     );
 
-    if (process.versions.node !== '24.21.0' || result.runtime.nx !== '23.2.1') {
+    if (
+      process.versions.node !== '24.21.0' ||
+      result.runtime.nx !== projectPackage.devDependencies.nx
+    ) {
       fail('unpinned-benchmark-runtime');
     }
 

@@ -17,6 +17,7 @@ import { sha256, syntheticContent } from './fixture.js';
 import { profileArchive } from './profile.js';
 import { FilePermissions } from '../../src/filesystem.js';
 import { KIBIBYTE, MEBIBYTE } from '../../src/units.js';
+import projectPackage from '../../package.json' with { type: 'json' };
 
 interface SyntheticRecipe {
   id: string;
@@ -267,7 +268,6 @@ export async function syntheticCorpus() {
 
       const require = createRequire(import.meta.url);
       const nx: { version: string } = require('nx/package.json');
-      const project: { packageManager: string } = require('../../package.json');
       return {
         schemaVersion: 1,
         provenance: {
@@ -283,7 +283,7 @@ export async function syntheticCorpus() {
         },
         runtime: {
           node: process.versions.node,
-          pnpm: project.packageManager.replace(/^pnpm@/, ''),
+          pnpm: projectPackage.packageManager.replace(/^pnpm@/, ''),
           nx: nx.version,
         },
         margins: {

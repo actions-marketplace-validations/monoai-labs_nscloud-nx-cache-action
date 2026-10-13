@@ -10,6 +10,7 @@
  */
 
 import type { FixturePackage } from './fixture-types.js';
+import projectPackage from '../package.json' with { type: 'json' };
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -70,8 +71,11 @@ await json('package.json', {
   name: 'cache-fixture',
   private: true,
   type: 'module',
-  packageManager: 'pnpm@11.22.0',
-  devDependencies: { nx: '23.2.1', esbuild: '0.28.2' },
+  packageManager: projectPackage.packageManager,
+  devDependencies: {
+    nx: projectPackage.devDependencies.nx,
+    esbuild: projectPackage.devDependencies.esbuild,
+  },
 });
 
 await put(

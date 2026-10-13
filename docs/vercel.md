@@ -6,7 +6,7 @@ The GitHub Action's PATH and environment changes stay in the GitHub job.
 
 This guide uses an existing Nx/pnpm workspace, an application at `apps/web`, and
 an Nx target named `web:build`. Substitute your application's path and target.
-Use Node 24.x on Vercel; the connector is tested with Nx 23.2.1. Pin pnpm through
+Use Node 24.x on Vercel; the connector is tested with Nx 23.3.0. Pin pnpm through
 your root `packageManager` field and commit its lockfile. Configure Vercel's
 [package-manager selection](https://vercel.com/docs/package-managers) to use that pin.
 

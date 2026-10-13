@@ -13,7 +13,7 @@ Nx owns task selection, hashing, archive creation and output restoration.
 ## Requirements
 
 - Node.js 24.x. Development and benchmarks pin Node 24.21.0.
-- Nx with the self-hosted HTTP cache protocol. Integration is tested with Nx 23.2.1;
+- Nx with the self-hosted HTTP cache protocol. Integration is tested with Nx 23.3.0;
   compatibility with other versions is unverified.
 - Cacheable Nx targets with declared inputs and outputs.
 - A Namespace workspace and Artifact permissions for remote caching. Local-only

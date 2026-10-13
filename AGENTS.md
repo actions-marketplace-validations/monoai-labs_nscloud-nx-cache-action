@@ -84,3 +84,9 @@ command succeeds.
 ShellCheck interprets JavaScript template interpolation inside a single-quoted
 `node -e` argument as shell interpolation. Use string concatenation in inline
 version checks rather than suppressing the diagnostic.
+Advisory patched ranges can mention versions absent from the registry. Verify an
+actually published version or update the parent package to a fixed release before
+changing dependency pins.
+When updating Nx, regenerate the synthetic corpus and update its runtime pin in
+`schemas/restoration-profile.schema.json`. The corpus tests compare full runtime
+metadata as well as archive structure and size calibration.

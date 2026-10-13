@@ -5,6 +5,7 @@
  *
  * Run: pnpm build [output-root] from the repository root.
  * Writes: dist/ and .output/release/ under output-root (default: this checkout).
+ * Creates: .output/npm/ for the separately packed npm distribution.
  * Tests supply their own output root so concurrent builds do not share files.
  */
 
@@ -26,6 +27,9 @@ const bundleOptions: BuildOptions = {
   platform: 'node',
   target: 'node24',
   format: 'esm',
+  minify: true,
+  keepNames: true,
+  legalComments: 'inline',
 };
 
 const executableBanner = {
@@ -40,7 +44,6 @@ const result = await build({
   ...bundleOptions,
   entryPoints: ['src/run.ts'],
   write: false,
-  legalComments: 'inline',
   banner: executableBanner,
 });
 
@@ -50,6 +53,7 @@ if (!output || result.outputFiles.length !== 1) {
 }
 
 await mkdir(releaseDirectory, { recursive: true });
+await mkdir(join(outputRoot, '.output', 'npm'), { recursive: true });
 await writeFile(join(releaseDirectory, name), output.contents, {
   mode: FilePermissions.Executable,
 });

@@ -140,5 +140,29 @@ Agreement, and publishing requires two-factor authentication. Follow
 
 The repository description should describe local archives and Namespace Artifact
 Storage; avoid latency or performance claims without published measurements.
-The package stays private because distribution uses GitHub and release assets,
-rather than npm.
+
+### npm publishing
+
+The CLI package is `@monoai/nscloud-nx-cache-action`. Stable release publication
+also packs and publishes that version to npm after the audit, tests, reproducible
+build and release-asset checks pass. The manual draft flow prepares the package
+without publishing it. A retry verifies the existing npm tarball integrity and
+skips publication only when the bytes match; lookup failures and conflicts fail.
+
+Configure the package's npm trusted publisher for GitHub owner `monoai-labs`,
+repository `nscloud-nx-cache-action`, workflow `release.yml`, with direct
+`npm publish` allowed. The workflow uses a GitHub-hosted runner and `id-token: write`;
+it needs no npm token secret. The pinned Node distribution includes npm 11.19.0,
+which supports OIDC. npm automatically adds provenance for the public package.
+See [npm's trusted publisher instructions](https://docs.npmjs.com/trusted-publishers/).
+
+If the package is not yet present on npm, its owner must complete the initial
+publication and publisher setup before automated release publishing can succeed.
+Configure the publisher close to the release: npm requires its first successful
+publish within two days. Keep npm versions immutable, just like release tags.
+
+Verify packaging locally with `pnpm build` and `pnpm package:pack`. The package test
+installs the actual tarball into an isolated workspace and exercises both binaries.
+Only the two executables, public guides, package metadata and license notices ship.
+TypeScript remains strictly checked; there is no importable library API or fabricated
+declaration file. Minification preserves function/class names and legal comments.

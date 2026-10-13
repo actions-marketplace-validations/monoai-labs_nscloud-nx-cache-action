@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     timeout-minutes: 10
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
@@ -39,12 +40,15 @@ jobs:
           node -e 'if (process.env.RELEASE_TAG !== "v" + require("./package.json").version) throw new Error("Release tag must match package version")'
           git merge-base --is-ancestor HEAD origin/main
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit
       - run: pnpm check
       - run: pnpm bench:restoration:offline
       - name: Build release assets
         run: pnpm build
       - name: Verify committed distribution
         run: git diff --exit-code -- dist
+      - name: Pack npm CLI distribution
+        run: pnpm package:pack
       - name: Prepare draft release from main
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -82,3 +86,6 @@ jobs:
           for release_asset in "${release_assets[@]}"; do
             cmp "$release_asset" "$verified_asset_directory/${release_asset##*/}"
           done
+      - name: Publish npm package with trusted publishing
+        if: github.event_name == 'release'
+        run: pnpm publish:npm

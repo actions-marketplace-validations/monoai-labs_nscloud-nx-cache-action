@@ -84,6 +84,8 @@ licenses. When dependencies change, update `NOTICE` and `THIRD_PARTY_LICENSES.tx
 and include these with every distributed executable. The release workflow prepares a draft with
 both executables, license notices and a checksum manifest from main. It also verifies
 and attaches missing assets when a release is published; see [release operations](docs/operations.md#releases).
+The npm package test packs and installs the CLI distribution in an isolated workspace.
+Run `pnpm package:pack` after building to inspect the archive in `.output/npm/`.
 
 Keep plans, generated workspaces and measurement output untracked. User guides
 describe current behavior; experiment logs and internal rollout history belong

@@ -19,8 +19,10 @@ Nx owns task selection, hashing, archive creation and output restoration.
 - A Namespace workspace and Artifact permissions for remote caching. Local-only
   operation does not need Namespace credentials.
 
-The adapter is distributed as a GitHub Action and standalone executable, rather
-than an npm package. It does not install Nx or configure your task graph.
+The adapter is distributed as a GitHub Action, an npm CLI package and standalone
+executables. It does not install Nx or configure your task graph. The token CLI
+can supply hosted builds with short-lived Artifact credentials. These command-line
+tools retain Nx's task hashes, archive format and output restoration.
 
 ## GitHub Actions
 
@@ -69,6 +71,22 @@ jobs:
 Use `access: read-only` for consumers that must not write. The action configures
 launchers and environment variables; the listener runs only during the wrapped
 command. Provider credentials and volume policy must enforce the intended access.
+
+## npm CLI
+
+The first npm publication requires the [publisher setup](docs/operations.md#npm-publishing).
+Once a version is published, install it in your workspace:
+
+```sh
+pnpm add --save-dev @monoai/nscloud-nx-cache-action@0.1.2
+NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-namespace" \
+  pnpm exec nscloud-nx-cache-action pnpm exec nx run-many -t build
+```
+
+The package provides `nscloud-nx-cache-action` and `nx-namespace-token`. It is CLI-only,
+ships minified Node 24 ESM bundles and license notices, and has no runtime package
+dependencies or install hooks. Configuration uses the same [environment variables](docs/configuration.md)
+as the standalone executables; omit `NX_ARTIFACT_PREFIX` for local-only caching.
 
 ## Standalone and local use
 

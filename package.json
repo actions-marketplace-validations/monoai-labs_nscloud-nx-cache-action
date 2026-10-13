@@ -1,10 +1,43 @@
 {
   "name": "@monoai/nscloud-nx-cache-action",
-  "version": "0.1.1",
-  "private": true,
-  "description": "Nx HTTP cache adapter for local archives and Namespace Artifact Storage",
+  "version": "0.1.2",
+  "description": "CLI tools for Nx HTTP caching across local development, Namespace runners and hosted builds, with local archives, shared Artifact Storage and short-lived build credentials.",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "nscloud-nx-cache-action": "dist/nscloud-nx-cache-action.mjs",
+    "nx-namespace-token": "dist/token.mjs"
+  },
+  "files": [
+    "dist/nscloud-nx-cache-action.mjs",
+    "dist/token.mjs",
+    "docs/configuration.md",
+    "docs/operations.md",
+    "docs/vercel.md",
+    "docs/benchmarking.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_LICENSES.txt"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/monoai-labs/nscloud-nx-cache-action.git"
+  },
+  "homepage": "https://github.com/monoai-labs/nscloud-nx-cache-action#readme",
+  "bugs": {
+    "url": "https://github.com/monoai-labs/nscloud-nx-cache-action/issues"
+  },
+  "keywords": [
+    "nx",
+    "namespace",
+    "cache",
+    "cli",
+    "github-actions"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": "24.x"
@@ -22,16 +55,16 @@
     "integration:restoration": "tsx scripts/integration-restoration.ts",
     "integration:contracts": "tsx scripts/contract-check.ts",
     "build": "tsx scripts/build.ts",
+    "package:pack": "npm pack --pack-destination .output/npm",
+    "publish:npm": "tsx scripts/publish-npm.ts",
     "bench:restoration:offline": "tsx bench/restoration/offline.ts",
     "bench:restoration:live": "tsx bench/restoration/run.ts",
     "bench:restoration:analyze": "tsx bench/restoration/analyze.ts"
   },
-  "dependencies": {
+  "devDependencies": {
     "@bufbuild/protobuf": "2.14.1",
     "@connectrpc/connect": "2.2.0",
-    "@namespacelabs/sdk": "1.0.0"
-  },
-  "devDependencies": {
+    "@namespacelabs/sdk": "1.0.0",
     "@types/node": "^24.19.2",
     "ajv": "8.20.0",
     "esbuild": "0.28.2",

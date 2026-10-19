@@ -148,6 +148,8 @@ also packs and publishes that version to npm after the audit, tests, reproducibl
 build and release-asset checks pass. The manual draft flow prepares the package
 without publishing it. A retry verifies the existing npm tarball integrity and
 skips publication only when the bytes match; lookup failures and conflicts fail.
+After publishing, it waits up to five minutes for the new version to become readable
+before verifying its integrity.
 
 Configure the package's npm trusted publisher for GitHub owner `monoai-labs`,
 repository `nscloud-nx-cache-action`, workflow `release.yml`, with direct

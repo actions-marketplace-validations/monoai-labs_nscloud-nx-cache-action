@@ -78,7 +78,7 @@ The first npm publication requires the [publisher setup](docs/operations.md#npm-
 Once a version is published, install it in your workspace:
 
 ```sh
-pnpm add --save-dev @monoai/nscloud-nx-cache-action@0.1.2
+pnpm add --save-dev @monoai/nscloud-nx-cache-action@0.1.3
 NX_ARCHIVE_DIRECTORY="$HOME/.cache/nx-namespace" \
   pnpm exec nscloud-nx-cache-action pnpm exec nx run-many -t build
 ```

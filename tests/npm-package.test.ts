@@ -6,7 +6,7 @@ import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path';
 import projectPackage from '../package.json' with { type: 'json' };
 import { buildDistributions, withTemporaryDirectory } from './helpers.js';
-import { matchesPublishedVersion } from '../scripts/publish-npm.js';
+import { matchesPublishedVersion, waitForPublishedVersion } from '../scripts/publish-npm.js';
 
 const exec = promisify(execFile);
 
@@ -116,4 +116,49 @@ test('npm retries require matching integrity; outages and malformed metadata fai
     matchesPublishedVersion(new Response('not JSON'), integrity),
     /Invalid npm registry metadata/,
   );
+});
+
+test('post-publish verification retries 404s until the version is readable or time runs out', async () => {
+  const integrity = 'sha512-reviewed-package';
+  const timeoutMs = 50;
+  const intervalMs = 1;
+  const sequence = (responses: (() => Response)[]) => {
+    let calls = 0;
+    const lookup = async () => {
+      const next = responses[Math.min(calls, responses.length - 1)];
+      calls += 1;
+      assert(next);
+      return next();
+    };
+    return { lookup, calls: () => calls };
+  };
+  const missing = () => new Response(null, { status: 404 });
+
+  const visibleLater = sequence([missing, missing, () => Response.json({ dist: { integrity } })]);
+  await waitForPublishedVersion(visibleLater.lookup, integrity, timeoutMs, intervalMs);
+  assert.equal(visibleLater.calls(), 3);
+
+  const neverVisible = sequence([missing]);
+  await assert.rejects(
+    waitForPublishedVersion(neverVisible.lookup, integrity, timeoutMs, intervalMs),
+    /not available for verification/,
+  );
+  assert(neverVisible.calls() > 1);
+
+  const outage = sequence([missing, () => new Response(null, { status: 503 })]);
+  await assert.rejects(
+    waitForPublishedVersion(outage.lookup, integrity, timeoutMs, intervalMs),
+    /HTTP 503/,
+  );
+  assert.equal(outage.calls(), 2);
+
+  const conflict = sequence([
+    missing,
+    () => Response.json({ dist: { integrity: 'sha512-other' } }),
+  ]);
+  await assert.rejects(
+    waitForPublishedVersion(conflict.lookup, integrity, timeoutMs, intervalMs),
+    /differs/,
+  );
+  assert.equal(conflict.calls(), 2);
 });

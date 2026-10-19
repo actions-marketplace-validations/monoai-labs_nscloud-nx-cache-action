@@ -10,14 +10,17 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import projectPackage from '../package.json' with { type: 'json' };
 import { execute } from '../src/execute.js';
 import { ExitCode } from '../src/process-constants.js';
-import { SECOND_MS } from '../src/units.js';
+import { MINUTE_MS, SECOND_MS } from '../src/units.js';
 
 const NPM_DIRECTORY = '.output/npm';
 const REGISTRY_TIMEOUT_MS = 30 * SECOND_MS;
+const PUBLISHED_VISIBILITY_TIMEOUT_MS = 5 * MINUTE_MS;
+const PUBLISHED_VISIBILITY_INTERVAL_MS = 15 * SECOND_MS;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -54,6 +57,25 @@ export async function matchesPublishedVersion(
   return true;
 }
 
+/**
+ * npm accepts a publish before the version is readable. Only 404 responses are
+ * retried; other lookup failures and integrity conflicts fail immediately.
+ */
+export async function waitForPublishedVersion(
+  lookup: () => Promise<Response>,
+  integrity: string,
+  timeoutMs = PUBLISHED_VISIBILITY_TIMEOUT_MS,
+  intervalMs = PUBLISHED_VISIBILITY_INTERVAL_MS,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!(await matchesPublishedVersion(await lookup(), integrity))) {
+    if (Date.now() + intervalMs > deadline) {
+      throw new Error('Published npm version is not available for verification');
+    }
+    await delay(intervalMs);
+  }
+}
+
 async function publish(): Promise<void> {
   const archives = (await readdir(NPM_DIRECTORY)).filter((name) => name.endsWith('.tgz'));
   const archive = archives[0];
@@ -77,9 +99,7 @@ async function publish(): Promise<void> {
     process.exitCode = code;
     return;
   }
-  if (!(await matchesPublishedVersion(await lookup(), integrity))) {
-    throw new Error('Published npm version is not available for verification');
-  }
+  await waitForPublishedVersion(lookup, integrity);
   console.log('Published npm package integrity verified');
 }
 

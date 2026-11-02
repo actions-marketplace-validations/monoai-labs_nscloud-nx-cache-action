@@ -18,7 +18,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from '
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { LocalStore } from '../../src/local-store.js';
-import { DiskBudget } from '../../src/disk-budget.js';
+import { DiskBudget, INVENTORY_FILE } from '../../src/disk-budget.js';
 import { PublicationQueue } from '../../src/publication-queue.js';
 import { startServer } from '../../src/server.js';
 import { KIBIBYTE, SECOND_MS } from '../../src/units.js';
@@ -527,7 +527,10 @@ export async function runCorePaths(
       await measure('disk-admission', 'inventory-scan', async () => {
         await local.receive('target', stream(bytes));
         assert.equal(sha(await stored(local, 'target')), sha(bytes));
-        assert.equal((await readdir(local.directory)).length, population + 1);
+        assert.equal(
+          (await readdir(local.directory)).filter((name) => name !== INVENTORY_FILE).length,
+          population + 1,
+        );
         if (population) {
           assert.equal(sha(await stored(local, 'inventory-0')), sha(small));
         }

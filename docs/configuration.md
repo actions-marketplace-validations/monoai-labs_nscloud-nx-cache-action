@@ -29,7 +29,7 @@ These settings apply when invoking the standalone executable or action launcher.
 | `NX_CACHE_DISK_BYTES` | `10737418240` (10 GiB) | Combined archive and extraction allowance. |
 | `NX_CACHE_EXTRACTION_BYTES` | `2147483648` (2 GiB) | Nx extraction-cache cleanup threshold, subtracted from the combined allowance. |
 | `NX_CACHE_ARCHIVE_BYTES` | `536870912` (512 MiB) | Maximum individual archive size. |
-| `NX_CACHE_RETENTION_HOURS` | `168` | Local archive retention. |
+| `NX_CACHE_RETENTION_HOURS` | `168` | Local archive retention. Older archives are misses, and the periodic [sweep](operations.md#storage) removes archives not read within it. |
 | `NX_CACHE_TRACE` | Unset | Set exactly `1` to emit request-scoped diagnostic spans. |
 
 Numeric settings must be positive safe integers. The archive allowance must exceed
@@ -55,6 +55,7 @@ disables the Nx daemon and gives the child fresh workspace metadata and extracti
 directories. It removes these directories after the child and publication drain
 finish; archives in `NX_ARCHIVE_DIRECTORY` persist.
 
-Use one connector process per archive directory. Concurrent Nx tasks within that
-command share the listener. Access flags are client policy; they do not restrict
+Connector processes may share an archive directory; see [storage](operations.md#storage)
+for how they account for it. Concurrent Nx tasks within one command share its
+listener. Access flags are client policy; they do not restrict
 what the underlying Namespace identity or mounted filesystem can do.

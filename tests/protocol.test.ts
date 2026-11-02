@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { connect } from 'node:net';
 import { LocalStore } from '../src/local-store.js';
@@ -8,7 +8,7 @@ import { startServer } from '../src/server.js';
 import type { RemoteStore } from '../src/artifact-store.js';
 import type { CacheEvent } from '../src/metrics.js';
 
-import { chunks, deferred, withTemporaryDirectory as sandbox } from './helpers.js';
+import { archiveNames, chunks, deferred, withTemporaryDirectory as sandbox } from './helpers.js';
 import { HttpMethod, HttpStatus } from '../src/http.js';
 import { CacheTier, CacheOperation } from '../src/metrics.js';
 import { SECOND_MS } from '../src/units.js';
@@ -301,7 +301,7 @@ test('concurrent recovery leaves one valid canonical local entry', () =>
       );
 
       assert.equal(await readFile((await store.get('broken')) ?? '', 'utf8'), 'canonical');
-      assert.deepEqual(await readdir(store.directory), ['broken']);
+      assert.deepEqual(await archiveNames(store.directory), ['broken']);
     } finally {
       await server.close();
     }
@@ -865,10 +865,10 @@ test('stalled admitted PUT expires, closes its input and frees admission', () =>
       );
       assert.equal(await store.get('stalled'), null);
 
-      let entries = await readdir(store.directory);
+      let entries = await archiveNames(store.directory);
       for (let attempt = 0; attempt < 20 && entries.length; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, REQUEST_CLEANUP_POLL_INTERVAL_MS));
-        entries = await readdir(store.directory);
+        entries = await archiveNames(store.directory);
       }
 
       assert.deepEqual(entries, []);

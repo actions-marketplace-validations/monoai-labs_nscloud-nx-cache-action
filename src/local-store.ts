@@ -9,7 +9,7 @@ import { mkdir, open, lstat, rename, rm, utimes } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { basename, join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { DiskBudget } from './disk-budget.js';
+import { DiskBudget, type ReleaseReservation } from './disk-budget.js';
 import type { CacheTrace } from './trace.js';
 
 const DISPLACED_ARCHIVE_RESTORE_ATTEMPTS = 3;
@@ -91,11 +91,6 @@ export class LocalStore {
     this.maxBytes = config.maxArchiveBytes ?? DEFAULT_MAX_ARCHIVE_BYTES;
     this.maxAgeMs = config.maxAgeMs ?? DEFAULT_RETENTION_MS;
     this.trace = config.trace;
-    this.budget = new DiskBudget(
-      this.directory,
-      config.maxDiskBytes ?? DEFAULT_LOCAL_DISK_BYTES,
-      this.trace,
-    );
 
     if (
       !Number.isSafeInteger(this.maxBytes) ||
@@ -105,6 +100,11 @@ export class LocalStore {
     ) {
       throw new Error('Invalid local store limits');
     }
+
+    this.budget = new DiskBudget(this.directory, config.maxDiskBytes ?? DEFAULT_LOCAL_DISK_BYTES, {
+      trace: this.trace,
+      maxAgeMs: this.maxAgeMs,
+    });
   }
 
   private async withHashLock<T>(hash: string, work: () => Promise<T>): Promise<T> {
@@ -327,7 +327,8 @@ export class LocalStore {
     const entry = join(this.directory, hash);
     const partial = join(this.directory, `.tmp-${hash}-${randomUUID()}`);
     const received = this.trace?.begin('local.receive');
-    let release: (() => void) | undefined;
+    let release: ReleaseReservation | undefined;
+    let published: number | undefined;
     try {
       release = await this.budget.reserve(this.maxBytes + MAX_ARCHIVE_METADATA_BYTES);
       await mkdir(partial, { mode: FilePermissions.OwnerOnlyDirectory });
@@ -381,6 +382,7 @@ export class LocalStore {
           digest: digest.digest('hex'),
           createdAt: Date.now(),
         };
+        const serialized = JSON.stringify(details);
         const description = await open(
           join(partial, 'metadata.json'),
           FileOpenMode.ExclusiveWrite,
@@ -389,7 +391,7 @@ export class LocalStore {
         try {
           const writeFinished = this.trace?.begin('local.metadata-write');
           try {
-            await description.writeFile(JSON.stringify(details));
+            await description.writeFile(serialized);
           } finally {
             writeFinished?.();
           }
@@ -443,6 +445,7 @@ export class LocalStore {
               }
             }
 
+            published = bytes + Buffer.byteLength(serialized);
             await syncDirectory(this.directory, this.trace);
 
             return { file: join(entry, 'archive'), created: true, bytes };
@@ -455,7 +458,7 @@ export class LocalStore {
         await rm(partial, { recursive: true, force: true });
       }
     } finally {
-      release?.();
+      await release?.(published);
       received?.();
     }
   }

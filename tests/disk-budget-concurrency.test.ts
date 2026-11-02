@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { DiskBudget } from '../src/disk-budget.js';
-import { deferred } from './helpers.js';
+import { archiveNames, deferred } from './helpers.js';
 import { HOUR_MS } from '../src/units.js';
 
 const FAST_INSPECTION_DELAY_MS = 5;
@@ -58,7 +58,7 @@ test('inventory scanning overlaps bounded entry inspections and accounts for eve
     assert.equal(inspected, 33);
     assert.equal(maximum, 16);
     assert.equal(active, 0);
-    assert.equal((await readdir(directory)).length, 32);
+    assert.equal((await archiveNames(directory)).length, 32);
   } finally {
     context.mock.restoreAll();
     syncBuiltinESMExports();
@@ -93,7 +93,7 @@ test('equal-age eviction retains directory order despite reversed scan completio
     release();
 
     await assert.rejects(access(join(directory, oldest)));
-    assert.deepEqual(await readdir(directory), names.slice(1));
+    assert.deepEqual(await archiveNames(directory), names.slice(1));
   } finally {
     context.mock.restoreAll();
     syncBuiltinESMExports();
@@ -186,7 +186,7 @@ test('entries disappearing during either enumeration do not leave partial accoun
     // Only 31 complete entries remain. The incomplete one has no accounted bytes.
     const release = await new DiskBudget(directory, 125).reserve(1);
     release();
-    assert.equal((await readdir(directory)).length, 32);
+    assert.equal((await archiveNames(directory)).length, 32);
   } finally {
     context.mock.restoreAll();
     syncBuiltinESMExports();

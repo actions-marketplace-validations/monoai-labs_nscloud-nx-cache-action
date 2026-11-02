@@ -1,8 +1,10 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+
+import { INVENTORY_FILE } from '../src/disk-budget.js';
 
 const exec = promisify(execFile);
 
@@ -17,6 +19,11 @@ export async function withTemporaryDirectory(run: (directory: string) => Promise
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+/** Lists an archive directory without the shared inventory sidecar. */
+export async function archiveNames(directory: string): Promise<string[]> {
+  return (await readdir(directory)).filter((name) => name !== INVENTORY_FILE);
 }
 
 export async function* chunks(value: string | Uint8Array) {

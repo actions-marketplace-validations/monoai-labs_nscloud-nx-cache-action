@@ -50,7 +50,7 @@ function fixture(
       protocol: 'restoration-v1',
       runtime: {
         node: '24.21.0',
-        nx: '23.2.1',
+        nx: '23.3.0',
         platform: 'linux',
         arch: 'x64',
         runnerProfile: 'benchmark',

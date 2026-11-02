@@ -1,10 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fsPromises, { readFile, writeFile, rm, symlink, readdir, mkdir } from 'node:fs/promises';
+import fsPromises, {
+  readFile,
+  writeFile,
+  rm,
+  symlink,
+  mkdir,
+  stat,
+  utimes,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import { syncBuiltinESMExports } from 'node:module';
 import { LocalStore, CacheIntegrityError } from '../src/local-store.js';
-import { chunks, deferred, withTemporaryDirectory } from './helpers.js';
+import { INVENTORY_FILE } from '../src/disk-budget.js';
+import { HOUR_MS } from '../src/units.js';
+import { archiveNames, chunks, deferred, withTemporaryDirectory } from './helpers.js';
 
 async function sandbox(run: (store: LocalStore) => Promise<void>) {
   await withTemporaryDirectory(async (directory) => run(new LocalStore(directory)));
@@ -20,7 +30,7 @@ test('atomic concurrent writes preserve one complete archive and remove partials
     assert(
       ['aaaa', 'bbbb'].includes(await readFile(join(store.directory, 'same', 'archive'), 'utf8')),
     );
-    assert.deepEqual(await readdir(store.directory), ['same']);
+    assert.deepEqual(await archiveNames(store.directory), ['same']);
 
     await assert.rejects(store.receive('../escape', chunks('bad')));
 
@@ -83,7 +93,7 @@ test('expired entries become misses and are removed', () =>
 test('empty archives leave no visible entries', () =>
   sandbox(async (store) => {
     await assert.rejects(store.receive('empty', chunks('')), CacheIntegrityError);
-    assert.deepEqual(await readdir(store.directory), []);
+    assert.deepEqual(await archiveNames(store.directory), []);
   }));
 
 test('broken input stream never becomes a local hit', () =>
@@ -96,7 +106,7 @@ test('broken input stream never becomes a local hit', () =>
 
     await assert.rejects(store.receive('new', broken()));
     assert.equal(await store.get('new'), null);
-    assert.deepEqual(await readdir(store.directory), []);
+    assert.deepEqual(await archiveNames(store.directory), []);
   }));
 
 test('an incomplete upload is invisible until the atomic publish', () =>
@@ -123,7 +133,7 @@ test('an incomplete upload is invisible until the atomic publish', () =>
 
     const entry = await pending;
     assert.equal(await readFile(entry.file, 'utf8'), 'firstsecond');
-    assert.deepEqual(await readdir(store.directory), ['hash']);
+    assert.deepEqual(await archiveNames(store.directory), ['hash']);
   }));
 
 test('a concurrent repair is not deleted by a stale corrupt read', () =>
@@ -155,7 +165,7 @@ test('separate LocalStore instances resolve a same-hash publish collision', () =
 
     assert(results.every((result) => result.file === results[0]?.file));
     assert.match(canonical, /^archive-(?:[0-9]|1[0-5])$/);
-    assert.deepEqual(await readdir(store.directory), ['shared']);
+    assert.deepEqual(await archiveNames(store.directory), ['shared']);
   }));
 
 test('a stale corrupt reader cannot quarantine a replacement from another store', () =>
@@ -241,10 +251,70 @@ for (const corruptThird of [false, true]) {
           await readFile((await store.get('hash')) ?? '', 'utf8'),
           corruptThird ? 'second' : 'third',
         );
-        assert.deepEqual(await readdir(store.directory), ['hash']);
+        assert.deepEqual(await archiveNames(store.directory), ['hash']);
       } finally {
         fsPromises.rename = originalRename;
         syncBuiltinESMExports();
       }
     }));
 }
+
+async function storedBytes(store: LocalStore, hash: string): Promise<number> {
+  const entry = join(store.directory, hash);
+  const archive = await stat(join(entry, 'archive'));
+  const metadata = await stat(join(entry, 'metadata.json'));
+
+  return archive.size + metadata.size;
+}
+
+async function recordedBytes(store: LocalStore): Promise<number> {
+  return JSON.parse(await readFile(join(store.directory, INVENTORY_FILE), 'utf8')).bytes;
+}
+
+test('only bytes published to the archive are added to the shared estimate', () =>
+  sandbox(async (store) => {
+    await store.receive('first', chunks('aaaa'));
+    assert.equal(await recordedBytes(store), await storedBytes(store, 'first'));
+
+    await store.receive('second', chunks('bbbbbbbb'));
+    const published = (await storedBytes(store, 'first')) + (await storedBytes(store, 'second'));
+    assert.equal(await recordedBytes(store), published);
+
+    const duplicate = await store.receive('first', chunks('cccc'));
+    assert.equal(duplicate.created, false);
+
+    async function* broken() {
+      yield Buffer.from('partial');
+
+      throw new Error('truncated');
+    }
+
+    await assert.rejects(store.receive('broken', broken()));
+    await assert.rejects(store.receive('empty', chunks('')), CacheIntegrityError);
+
+    const aborted = new AbortController();
+    aborted.abort();
+    await assert.rejects(store.receive('aborted', chunks('dddd'), aborted.signal));
+
+    assert.equal(await recordedBytes(store), published);
+    assert.deepEqual(await archiveNames(store.directory), ['first', 'second']);
+  }));
+
+test('a sweep applies the store retention to entries untouched for longer', () =>
+  withTemporaryDirectory(async (directory) => {
+    const store = new LocalStore(directory, { maxAgeMs: HOUR_MS });
+    await store.receive('stale', chunks('stale'));
+    await store.receive('recent', chunks('recent'));
+
+    const past = new Date(Date.now() - 2 * HOUR_MS);
+    await utimes(join(store.directory, 'stale'), past, past);
+    await rm(join(store.directory, INVENTORY_FILE));
+
+    await store.receive('next', chunks('next'));
+
+    assert.deepEqual(await archiveNames(store.directory), ['next', 'recent']);
+    assert.equal(
+      await recordedBytes(store),
+      (await storedBytes(store, 'recent')) + (await storedBytes(store, 'next')),
+    );
+  }));

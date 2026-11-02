@@ -14,9 +14,32 @@ permissions and volume commit restrictions must control which workloads can writ
 
 Local archives use `entries-v1/<task-hash>/` with size, SHA-256 digest and timestamp
 metadata. Writes flush both files before atomic directory publication; reads verify
-regular files, size and digest. Admission reserves space before writing and evicts
-least recently used archives. It inspects at most 16 inventory entries concurrently
-while serializing admission. Abandoned partials older than one hour are removed.
+regular files, size and digest.
+
+Admission reserves space before writing, but it does not inventory the directory on
+every write. A sweep inspects every entry, at most 16 concurrently while serializing
+admission within a process. It removes archives whose directory has not been read or
+written within `NX_CACHE_RETENTION_HOURS` and abandoned partials older than one hour,
+evicts least recently used archives until the reservation fits, and records the exact
+stored bytes in `entries-v1/.inventory.json`. A sweep runs when that file is missing,
+unusable or older than one hour, and before any reservation whose estimate might
+exceed the budget: the recorded bytes plus this process's in-flight reservations plus
+the request. A reservation is refused for budget only after such an exact sweep. Each
+published archive adds its bytes to the recorded estimate; the file is replaced
+atomically, and a failed update never fails a write, it only makes the next
+reservation sweep.
+
+Between sweeps the budget is an estimate. Processes sharing the directory do not
+coordinate, so bytes that concurrent processes publish may be missing from it until
+the next sweep corrects it. Free disk space is the hard limit: it is checked on every
+reservation, and a reservation that skipped the sweep but finds too little space
+sweeps once and checks again before refusing.
+
+A restored volume snapshot carries the estimate file it was taken with, so its
+estimate describes that snapshot's entries and the snapshot is swept on its first
+write if the file is over an hour old. `NX_CACHE_ACCESS=read-only` rejects every PUT
+before admission, so those requests never sweep. Artifact hits that a GET restores
+into the local archive are still admitted, and can sweep, in a read-only job.
 
 HTTP PUT success acknowledges local admission and queued publication. The command
 drains up to ten concurrent publications before exiting. Only successful completion

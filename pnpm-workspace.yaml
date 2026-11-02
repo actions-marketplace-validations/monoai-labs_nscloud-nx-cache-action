@@ -4,6 +4,10 @@ allowBuilds:
   nx: true
   esbuild: true
 overrides:
-  # Nx pins an affected release; remove once its Undici dependency is patched.
-  # https://github.com/advisories/GHSA-w293-vg96-wgc3
-  'nx>undici': 7.29.1
+  # Nx and Ajv pin affected releases; remove each once its parent's dependency is patched.
+  # https://github.com/advisories/GHSA-2m5v-pch6-74hx
+  # https://github.com/advisories/GHSA-g3hv-75wg-m249
+  # https://github.com/advisories/GHSA-wjr9-j795-jxcr
+  'nx>undici': 7.30.1
+  'nx>minimatch': 11.0.3
+  'ajv>fast-uri': 3.1.9

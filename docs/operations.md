@@ -46,6 +46,22 @@ drains up to ten concurrent publications before exiting. Only successful complet
 of that drain establishes shared durability. Task failure or cancellation retains
 its exit status while accepted publications drain.
 
+A publication that fails with a transient error is retried up to three times, after
+waits of about 2, 5 and 10 seconds, each varied by up to 20%. Transient errors are
+Artifact Storage `Internal`, `Unknown`, `Unavailable` and `DeadlineExceeded`, a
+connection failure during the upload, and HTTP 5xx from the signed upload.
+Authorization, invalid request and not-found errors, HTTP 4xx and local file errors
+fail on the first attempt. Each retry restarts the whole publication, and every
+attempt keeps its request and transfer timeouts.
+
+A retry wait does not occupy one of the ten publication slots, so it does not delay
+later writes, but the drain waits for it, up to about 20 seconds of waiting per
+publication. `SIGINT` and `SIGTERM` end pending waits and stop further retries; an
+attempt already running finishes. A publication that recovers is recorded as an
+ordinary publication. One that gives up is recorded once, with the error code of its
+last attempt. After a retry, an artifact that already exists counts as published only
+if it carries the digest label that finalization adds.
+
 ## Credentials and hosted builds
 
 On Namespace runners, the SDK can use the workload credential. Elsewhere, provide

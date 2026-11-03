@@ -9,7 +9,7 @@ import type { RemoteStore } from './artifact-store.js';
 import { CacheIntegrityError, type LocalStore } from './local-store.js';
 import type { RecordEvent } from './metrics.js';
 import { errorCode, CacheOperation, CacheTier } from './metrics.js';
-import { PublicationQueue } from './publication-queue.js';
+import { PublicationQueue, type PublicationSlot } from './publication-queue.js';
 import type { CacheTrace } from './trace.js';
 
 const DEFAULT_REQUEST_CONCURRENCY = 32;
@@ -86,6 +86,7 @@ export async function startServer(options: {
 
   const pending = new Set<Promise<void>>();
   const publications = new PublicationQueue();
+  const publicationRetries = new AbortController();
   let active = 0;
   const waiting: { admit: (result: Admission) => void; cancelled: boolean }[] = [];
 
@@ -349,11 +350,14 @@ export async function startServer(options: {
           });
         }
 
-        const publish = async () => {
+        const publish = async (slot?: PublicationSlot) => {
           const publishStarted = performance.now();
           if (remote) {
             try {
-              created = await remote.put(hash, stored.file);
+              created = await remote.put(hash, stored.file, {
+                stopRetries: publicationRetries.signal,
+                ...(slot ? { idle: slot.idle } : {}),
+              });
               if (!created && stored.created) {
                 await options.local.remove(hash);
                 const canonical = await remote.get(hash);
@@ -472,6 +476,8 @@ export async function startServer(options: {
     url: `http://127.0.0.1:${address.port}`,
     token,
     drain: () => publications.drain(),
+    /** Ends pending publication retries; attempts already running finish. */
+    stopPublicationRetries: () => publicationRetries.abort(),
     async close() {
       const closing = new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

@@ -1,5 +1,11 @@
 const DEFAULT_PUBLICATION_CONCURRENCY = 10;
 
+/** A job's hold on one unit of publication concurrency. */
+export interface PublicationSlot {
+  /** Runs `work` without holding the slot, then waits for a slot again. */
+  idle<T>(work: () => Promise<T>): Promise<T>;
+}
+
 /** Bounds admitted work and waits for shared durability separately from local acceptance. */
 export class PublicationQueue {
   private readonly jobs = new Map<string, Promise<void>>();
@@ -16,16 +22,12 @@ export class PublicationQueue {
     this.concurrency = concurrency;
   }
 
-  async add(hash: string, publish: () => Promise<void>): Promise<void> {
+  async add(hash: string, publish: (slot: PublicationSlot) => Promise<void>): Promise<void> {
     if (this.jobs.has(hash)) {
       return;
     }
 
-    if (this.active >= this.concurrency) {
-      await new Promise<void>((resolve) => this.waiting.push(resolve));
-    } else {
-      this.active++;
-    }
+    await this.acquire();
 
     // A concurrent request may have admitted the same hash while this request waited.
     if (this.jobs.has(hash)) {
@@ -33,8 +35,18 @@ export class PublicationQueue {
       return;
     }
 
+    const slot: PublicationSlot = {
+      idle: async (work) => {
+        this.release();
+        try {
+          return await work();
+        } finally {
+          await this.acquire();
+        }
+      },
+    };
     const job = Promise.resolve()
-      .then(publish)
+      .then(() => publish(slot))
       .catch(() => {
         this.failed = true;
       })
@@ -43,6 +55,16 @@ export class PublicationQueue {
         this.release();
       });
     this.jobs.set(hash, job);
+  }
+
+  private acquire(): Promise<void> {
+    if (this.active < this.concurrency) {
+      this.active++;
+
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => this.waiting.push(resolve));
   }
 
   private release() {

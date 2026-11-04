@@ -10,6 +10,7 @@ export interface CacheServer {
   url: string;
   token: string;
   close(): Promise<void>;
+  stopPublicationRetries?(): void;
 }
 
 export async function runWithCache(

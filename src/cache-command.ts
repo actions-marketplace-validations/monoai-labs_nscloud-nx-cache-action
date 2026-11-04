@@ -2,7 +2,12 @@ import { ProcessSignal, ExitCode } from './process-constants.js';
 import { execute } from './execute.js';
 
 export async function runCachedCommand(
-  server: { url: string; token: string; close(): Promise<void> },
+  server: {
+    url: string;
+    token: string;
+    close(): Promise<void>;
+    stopPublicationRetries?(): void;
+  },
   command: string,
   args: string[],
   env: NodeJS.ProcessEnv,
@@ -11,9 +16,11 @@ export async function runCachedCommand(
   let code: number = ExitCode.Success;
   const interrupt = () => {
     code = ExitCode.Interrupted;
+    server.stopPublicationRetries?.();
   };
   const terminate = () => {
     code = ExitCode.Terminated;
+    server.stopPublicationRetries?.();
   };
 
   process.on(ProcessSignal.Interrupt, interrupt);
